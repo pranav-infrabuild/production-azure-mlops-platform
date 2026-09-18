@@ -1,0 +1,9 @@
+DATA VALIDATION REPORT
+======================
+
+Dataset: data/sample/customer_churn_bad.csv
+
+Validation Errors:
+- partner: invalid values {'INVALID'}
+- tenure: value below minimum 0
+- monthly_charges: value below minimum 0

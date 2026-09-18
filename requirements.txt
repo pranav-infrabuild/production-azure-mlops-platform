@@ -1,0 +1,7 @@
+pandas
+pyyaml
+pytest
+ruff
+scikit-learn
+mlflow
+feast

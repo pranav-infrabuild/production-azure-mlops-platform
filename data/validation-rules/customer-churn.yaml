@@ -1,0 +1,116 @@
+dataset:
+  name: customer-churn
+  version: "1.0"
+
+schema:
+  required_columns:
+    - customer_id
+    - gender
+    - senior_citizen
+    - partner
+    - dependents
+    - tenure
+    - phone_service
+    - internet_service
+    - contract
+    - monthly_charges
+    - total_charges
+    - churn
+
+  columns:
+    customer_id:
+      type: string
+      nullable: false
+
+    gender:
+      type: string
+      nullable: false
+      allowed_values:
+        - "Male"
+        - "Female"
+
+    senior_citizen:
+      type: integer
+      nullable: false
+      allowed_values:
+        - 0
+        - 1
+
+    partner:
+      type: string
+      nullable: false
+      allowed_values:
+        - "Yes"
+        - "No"
+
+    dependents:
+      type: string
+      nullable: false
+      allowed_values:
+        - "Yes"
+        - "No"
+
+    tenure:
+      type: integer
+      nullable: false
+      min: 0
+      max: 100
+
+    phone_service:
+      type: string
+      nullable: false
+      allowed_values:
+        - "Yes"
+        - "No"
+
+    internet_service:
+      type: string
+      nullable: false
+      allowed_values:
+        - "DSL"
+        - "Fiber optic"
+        - "No"
+
+    contract:
+      type: string
+      nullable: false
+      allowed_values:
+        - "Month-to-month"
+        - "One year"
+        - "Two year"
+
+    monthly_charges:
+      type: float
+      nullable: false
+      min: 0
+
+    total_charges:
+      type: float
+      nullable: false
+      min: 0
+
+    churn:
+      type: string
+      nullable: false
+      allowed_values:
+        - "Yes"
+        - "No"
+
+quality:
+  minimum_rows: 100
+  maximum_null_percentage: 5
+  allow_duplicates: false
+
+business_rules:
+  - name: total_charges_non_negative
+    description: Total charges must be greater than or equal to zero
+
+  - name: monthly_charges_non_negative
+    description: Monthly charges must be greater than or equal to zero
+
+  - name: tenure_valid_range
+    description: Tenure must be between 0 and 100 months
+
+validation:
+  on_failure: quarantine
+  fail_pipeline: true
