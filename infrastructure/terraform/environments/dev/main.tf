@@ -1,16 +1,18 @@
 terraform {
-  required_version = ">=1.6.0"
+  required_version = ">= 1.6.0"
 
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>4.0"
+      version = "~> 4.0"
     }
   }
 }
 
 provider "azurerm" {
   features {}
+  resource_provider_registrations = "none"
+  storage_use_azuread             = true
 }
 
 module "resource_group" {
@@ -21,6 +23,139 @@ module "resource_group" {
   tags                = var.tags
 }
 
+module "vnet" {
+  source = "../../modules/vnet"
+
+  vnet_name           = var.vnet_name
+  vnet_address_space  = var.vnet_address_space
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.location
+  subnets             = var.subnets
+  tags                = var.tags
+
+  depends_on = [
+    module.resource_group
+  ]
+}
+
+module "nsg" {
+  source = "../../modules/nsg"
+
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.location
+
+  network_security_groups = [
+    "nsg-aks-dev",
+    "nsg-management-dev",
+    "nsg-database-dev",
+    "nsg-private-endpoint-dev"
+  ]
+
+  network_security_rules = {
+    allow-https-inbound = {
+      priority                    = 100
+      direction                   = "Inbound"
+      access                      = "Allow"
+      protocol                    = "Tcp"
+      source_port_range           = "*"
+      destination_port_range      = "443"
+      source_address_prefix       = "*"
+      destination_address_prefix  = "*"
+      network_security_group_name = "nsg-aks-dev"
+    }
+
+    allow-http-inbound = {
+      priority                    = 110
+      direction                   = "Inbound"
+      access                      = "Allow"
+      protocol                    = "Tcp"
+      source_port_range           = "*"
+      destination_port_range      = "80"
+      source_address_prefix       = "*"
+      destination_address_prefix  = "*"
+      network_security_group_name = "nsg-aks-dev"
+    }
+  }
+
+  subnet_nsg_associations = {
+    aks-subnet = {
+      subnet_id                   = module.vnet.subnet_ids["aks-subnet"]
+      network_security_group_name = "nsg-aks-dev"
+    }
+
+    management-subnet = {
+      subnet_id                   = module.vnet.subnet_ids["management-subnet"]
+      network_security_group_name = "nsg-management-dev"
+    }
+
+    database-subnet = {
+      subnet_id                   = module.vnet.subnet_ids["database-subnet"]
+      network_security_group_name = "nsg-database-dev"
+    }
+
+    private-endpoint-subnet = {
+      subnet_id                   = module.vnet.subnet_ids["private-endpoint-subnet"]
+      network_security_group_name = "nsg-private-endpoint-dev"
+    }
+  }
+
+  tags = var.tags
+
+  depends_on = [
+    module.resource_group
+  ]
+}
+
+module "adls_private_endpoint" {
+  source = "../../modules/private-endpoint"
+
+  private_endpoint_name = "pe-adls-dev"
+
+  private_service_connection_name = "psc-adls-dev"
+
+  private_connection_resource_id = module.adls.storage_account_id
+
+  subresource_names = [
+    "dfs"
+  ]
+
+  subnet_id = module.vnet.subnet_ids["private-endpoint-subnet"]
+
+  private_dns_zone_group_name = "default"
+
+  private_dns_zone_ids = [
+    module.adls_private_dns.private_dns_zone_id
+  ]
+
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.location
+
+  tags = var.tags
+
+  depends_on = [
+    module.adls,
+    module.vnet,
+    module.adls_private_dns
+  ]
+}
+
+module "adls_private_dns" {
+  source = "../../modules/private-dns"
+
+  private_dns_zone_name = "privatelink.dfs.core.windows.net"
+
+  resource_group_name = module.resource_group.resource_group_name
+
+  vnet_link_name = "link-adls-dfs-dev"
+
+  virtual_network_id = module.vnet.vnet_id
+
+  tags = var.tags
+
+  depends_on = [
+    module.vnet
+  ]
+}
 module "adls" {
   source = "../../modules/adls"
 
@@ -33,3 +168,4 @@ module "adls" {
     module.resource_group
   ]
 }
+

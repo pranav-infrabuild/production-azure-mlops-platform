@@ -1,8 +1,30 @@
-storage_account_name = "stmlopsdev001"
-
 resource_group_name = "rg-mlops-dev"
 
 location = "Central India"
+
+storage_account_name = "stmlopsdev925714"
+
+vnet_name = "vnet-mlops-dev"
+
+vnet_address_space = "172.16.0.0/16"
+
+subnets = {
+  aks-subnet = {
+    address_prefix = "172.16.1.0/24"
+  }
+
+  management-subnet = {
+    address_prefix = "172.16.2.0/24"
+  }
+
+  database-subnet = {
+    address_prefix = "172.16.3.0/24"
+  }
+
+  private-endpoint-subnet = {
+    address_prefix = "172.16.4.0/24"
+  }
+}
 
 tags = {
   environment = "dev"
