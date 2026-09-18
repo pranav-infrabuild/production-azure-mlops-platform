@@ -1,0 +1,12 @@
+storage_account_name = "stmlopsdev001"
+
+resource_group_name = "rg-mlops-dev"
+
+location = "Central India"
+
+tags = {
+  environment = "dev"
+  project     = "production-azure-mlops-platform"
+  managed_by  = "terraform"
+  owner       = "mlops-team"
+}
