@@ -268,4 +268,53 @@ resource "azurerm_private_dns_zone_virtual_network_link" "mysql_eastasia" {
     module.mysql_vnet
   ]
 }
+module "acr_private_dns" {
+  source = "../../modules/private-dns"
 
+  private_dns_zone_name = "privatelink.azurecr.io"
+
+  resource_group_name = module.resource_group.resource_group_name
+
+  vnet_link_name = "link-acr-dev"
+
+  virtual_network_id = module.vnet.vnet_id
+
+  tags = var.tags
+
+  depends_on = [
+    module.vnet
+  ]
+}
+
+module "acr_private_endpoint" {
+  source = "../../modules/private-endpoint"
+
+  private_endpoint_name = "pe-acr-dev"
+
+  private_service_connection_name = "psc-acr-dev"
+
+  private_connection_resource_id = module.acr.registry_id
+
+  subresource_names = [
+    "registry"
+  ]
+
+  subnet_id = module.vnet.subnet_ids["private-endpoint-subnet"]
+
+  resource_group_name = module.resource_group.resource_group_name
+
+  location = var.location
+
+  private_dns_zone_group_name = "acr-dns-zone-group"
+
+  private_dns_zone_ids = [
+    module.acr_private_dns.private_dns_zone_id
+  ]
+
+  tags = var.tags
+
+  depends_on = [
+    module.acr,
+    module.acr_private_dns
+  ]
+}
