@@ -23,6 +23,17 @@ module "resource_group" {
   tags                = var.tags
 }
 
+module "acr" {
+  source = "../../modules/acr"
+
+  registry_name       = var.acr_name
+  resource_group_name = module.resource_group.resource_group_name
+  location            = var.location
+
+  sku = var.acr_sku
+
+  tags = var.tags
+}
 module "vnet" {
   source = "../../modules/vnet"
 
@@ -257,3 +268,4 @@ resource "azurerm_private_dns_zone_virtual_network_link" "mysql_eastasia" {
     module.mysql_vnet
   ]
 }
+

@@ -89,3 +89,18 @@ variable "mysql_availability_zone" {
   type        = string
   default     = "1"
 }
+variable "acr_name" {
+  description = "Globally unique Azure Container Registry name."
+  type        = string
+}
+
+variable "acr_sku" {
+  description = "Azure Container Registry SKU."
+  type        = string
+  default     = "Premium"
+
+  validation {
+    condition     = contains(["Basic", "Standard", "Premium"], var.acr_sku)
+    error_message = "ACR SKU must be Basic, Standard, or Premium."
+  }
+}
