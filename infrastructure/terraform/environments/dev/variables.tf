@@ -104,3 +104,18 @@ variable "acr_sku" {
     error_message = "ACR SKU must be Basic, Standard, or Premium."
   }
 }
+variable "key_vault_name" {
+  description = "Globally unique Azure Key Vault name."
+  type        = string
+}
+
+variable "key_vault_sku" {
+  description = "Azure Key Vault SKU."
+  type        = string
+  default     = "standard"
+
+  validation {
+    condition     = contains(["standard", "premium"], var.key_vault_sku)
+    error_message = "Key Vault SKU must be standard or premium."
+  }
+}

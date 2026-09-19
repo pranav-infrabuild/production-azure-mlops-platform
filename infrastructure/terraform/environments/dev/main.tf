@@ -14,7 +14,7 @@ provider "azurerm" {
   resource_provider_registrations = "none"
   storage_use_azuread             = true
 }
-
+data "azurerm_client_config" "current" {}
 module "resource_group" {
   source = "../../modules/resource-group"
 
@@ -316,5 +316,74 @@ module "acr_private_endpoint" {
   depends_on = [
     module.acr,
     module.acr_private_dns
+  ]
+}
+
+module "key_vault" {
+  source = "../../modules/key-vault"
+
+  key_vault_name      = var.key_vault_name
+  resource_group_name = module.resource_group.resource_group_name
+  location            = var.location
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+
+  sku_name = var.key_vault_sku
+
+  tags = var.tags
+
+  depends_on = [
+    module.resource_group
+  ]
+}
+
+module "key_vault_private_dns" {
+  source = "../../modules/private-dns"
+
+  private_dns_zone_name = "privatelink.vaultcore.azure.net"
+
+  resource_group_name = module.resource_group.resource_group_name
+
+  vnet_link_name = "link-key-vault-dev"
+
+  virtual_network_id = module.vnet.vnet_id
+
+  tags = var.tags
+
+  depends_on = [
+    module.vnet
+  ]
+}
+
+module "key_vault_private_endpoint" {
+  source = "../../modules/private-endpoint"
+
+  private_endpoint_name = "pe-key-vault-dev"
+
+  private_service_connection_name = "psc-key-vault-dev"
+
+  private_connection_resource_id = module.key_vault.key_vault_id
+
+  subresource_names = [
+    "vault"
+  ]
+
+  subnet_id = module.vnet.subnet_ids["private-endpoint-subnet"]
+
+  resource_group_name = module.resource_group.resource_group_name
+
+  location = var.location
+
+  private_dns_zone_group_name = "key-vault-dns-zone-group"
+
+  private_dns_zone_ids = [
+    module.key_vault_private_dns.private_dns_zone_id
+  ]
+
+  tags = var.tags
+
+  depends_on = [
+    module.key_vault,
+    module.key_vault_private_dns
   ]
 }
