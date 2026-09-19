@@ -38,6 +38,31 @@ module "vnet" {
   ]
 }
 
+module "mysql_vnet" {
+  source = "../../modules/vnet"
+
+  vnet_name          = "vnet-mysql-eastasia"
+  vnet_address_space = "172.18.0.0/16"
+
+  resource_group_name = module.resource_group.resource_group_name
+  location            = "East Asia"
+
+  subnets = {
+    database-subnet = {
+      address_prefix = "172.18.1.0/24"
+
+      delegation = {
+        name         = "mysql-flexible-server-delegation"
+        service_name = "Microsoft.DBforMySQL/flexibleServers"
+        actions = [
+          "Microsoft.Network/virtualNetworks/subnets/join/action"
+        ]
+      }
+    }
+  }
+
+  tags = var.tags
+}
 module "nsg" {
   source = "../../modules/nsg"
 
@@ -169,3 +194,66 @@ module "adls" {
   ]
 }
 
+module "mysql" {
+  source = "../../modules/mysql-flexible-server"
+
+  server_name = var.mysql_server_name
+
+  resource_group_name = module.resource_group.resource_group_name
+  location            = "East Asia"
+
+  administrator_login    = var.mysql_administrator_login
+  administrator_password = var.mysql_administrator_password
+
+  sku_name        = var.mysql_sku_name
+  mysql_version   = var.mysql_version
+  storage_size_gb = var.mysql_storage_size_gb
+
+  backup_retention_days = var.mysql_backup_retention_days
+
+  availability_zone = var.mysql_availability_zone
+
+  delegated_subnet_id = module.mysql_vnet.subnet_ids["database-subnet"]
+
+  private_dns_zone_id = module.mysql_private_dns.private_dns_zone_id
+
+  tags = var.tags
+
+  depends_on = [
+    module.vnet,
+    module.mysql_private_dns
+  ]
+}
+module "mysql_private_dns" {
+  source = "../../modules/private-dns"
+
+  private_dns_zone_name = "privatelink.mysql.database.azure.com"
+
+  resource_group_name = module.resource_group.resource_group_name
+
+  vnet_link_name = "link-mysql-dev"
+
+  virtual_network_id = module.vnet.vnet_id
+
+  tags = var.tags
+
+  depends_on = [
+    module.vnet
+  ]
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "mysql_eastasia" {
+  name                  = "link-mysql-eastasia"
+  resource_group_name   = module.resource_group.resource_group_name
+  private_dns_zone_name = "privatelink.mysql.database.azure.com"
+  virtual_network_id    = module.mysql_vnet.vnet_id
+
+  registration_enabled = false
+
+  tags = var.tags
+
+  depends_on = [
+    module.mysql_private_dns,
+    module.mysql_vnet
+  ]
+}

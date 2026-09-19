@@ -18,8 +18,17 @@ subnets = {
   }
 
   database-subnet = {
-    address_prefix = "172.16.3.0/24"
+  address_prefix = "172.16.3.0/24"
+
+  delegation = {
+    name         = "mysql-flexible-server-delegation"
+    service_name = "Microsoft.DBforMySQL/flexibleServers"
+
+    actions = [
+      "Microsoft.Network/virtualNetworks/subnets/join/action"
+    ]
   }
+}
 
   private-endpoint-subnet = {
     address_prefix = "172.16.4.0/24"
@@ -32,3 +41,19 @@ tags = {
   managed_by  = "terraform"
   owner       = "mlops-team"
 }
+
+mysql_server_name = "mysql-mlops-dev925714"
+
+mysql_administrator_login = "mlopsadmin"
+
+mysql_administrator_password = "Pranav@97210101"
+
+mysql_sku_name = "B_Standard_B1ms"
+
+mysql_version = "8.0.21"
+
+mysql_storage_size_gb = 32
+
+mysql_backup_retention_days = 7
+
+mysql_availability_zone = "1"
