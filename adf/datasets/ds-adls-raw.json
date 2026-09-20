@@ -9,7 +9,7 @@
     "type": "Parquet",
     "typeProperties": {
       "location": {
-        "folderPath": "raw",
+        "fileSystem": "raw",
         "type": "AzureBlobFSLocation"
       }
     }
