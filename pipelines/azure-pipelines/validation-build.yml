@@ -38,3 +38,19 @@ steps:
       tags: |
         $(imageTag)
         latest
+
+  - script: |
+      echo "Saving Docker image as pipeline artifact..."
+
+      docker save $(imageRepository):$(imageTag) | gzip > $(Build.ArtifactStagingDirectory)/validation-service-$(imageTag).tar.gz
+
+      echo "Docker image saved successfully."
+      ls -lh $(Build.ArtifactStagingDirectory)/validation-service-$(imageTag).tar.gz
+    displayName: Save Docker image
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish validation Docker image artifact
+    inputs:
+      targetPath: "$(Build.ArtifactStagingDirectory)/validation-service-$(imageTag).tar.gz"
+      artifact: validation-docker-image
+      publishLocation: pipeline
