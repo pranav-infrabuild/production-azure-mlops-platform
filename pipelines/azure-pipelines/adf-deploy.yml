@@ -41,7 +41,9 @@ stages:
               echo "========================================"
 
               test -f adf/linkedServices/ls-adls-gen2.json
+              test -f adf/datasets/ds-adls-raw.json
               test -f adf/datasets/ds-adls-processed.json
+              test -f adf/pipelines/pl-ingest-raw-to-processed.json
 
               echo ""
               echo "ADF metadata files found:"
@@ -54,7 +56,13 @@ stages:
                 adf/linkedServices/ls-adls-gen2.json > /dev/null
 
               python -m json.tool \
+                adf/datasets/ds-adls-raw.json > /dev/null
+
+              python -m json.tool \
                 adf/datasets/ds-adls-processed.json > /dev/null
+
+              python -m json.tool \
+                adf/pipelines/pl-ingest-raw-to-processed.json > /dev/null
 
               echo ""
               echo "ADF metadata validation successful."
@@ -104,9 +112,9 @@ stages:
                 echo "Subscription   : $(subscriptionId)"
                 echo "API Version    : $(apiVersion)"
 
-                # ------------------------------------------------
-                # Prepare Linked Service REST payload
-                # ------------------------------------------------
+                # ====================================================
+                # LINKED SERVICE
+                # ====================================================
 
                 echo ""
                 echo "Preparing linked service payload..."
@@ -115,15 +123,6 @@ stages:
                   adf/linkedServices/ls-adls-gen2.json \
                   > /tmp/ls-adls-gen2-payload.json
 
-                echo ""
-                echo "Linked service payload:"
-                cat /tmp/ls-adls-gen2-payload.json
-
-                # ------------------------------------------------
-                # Deploy Linked Service
-                # ------------------------------------------------
-
-                echo ""
                 echo "Deploying linked service..."
 
                 az rest \
@@ -131,42 +130,75 @@ stages:
                   --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/linkedservices/ls-adls-gen2?api-version=$(apiVersion)" \
                   --body @/tmp/ls-adls-gen2-payload.json
 
-                echo ""
                 echo "Linked service deployment successful."
 
-                # ------------------------------------------------
-                # Prepare Dataset REST payload
-                # ------------------------------------------------
+
+                # ====================================================
+                # RAW DATASET
+                # ====================================================
 
                 echo ""
-                echo "Preparing dataset payload..."
+                echo "Preparing raw dataset payload..."
+
+                jq '{properties: .properties}' \
+                  adf/datasets/ds-adls-raw.json \
+                  > /tmp/ds-adls-raw-payload.json
+
+                echo "Deploying raw dataset..."
+
+                az rest \
+                  --method put \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/datasets/ds-adls-raw?api-version=$(apiVersion)" \
+                  --body @/tmp/ds-adls-raw-payload.json
+
+                echo "Raw dataset deployment successful."
+
+
+                # ====================================================
+                # PROCESSED DATASET
+                # ====================================================
+
+                echo ""
+                echo "Preparing processed dataset payload..."
 
                 jq '{properties: .properties}' \
                   adf/datasets/ds-adls-processed.json \
                   > /tmp/ds-adls-processed-payload.json
 
-                echo ""
-                echo "Dataset payload:"
-                cat /tmp/ds-adls-processed-payload.json
-
-                # ------------------------------------------------
-                # Deploy Dataset
-                # ------------------------------------------------
-
-                echo ""
-                echo "Deploying dataset..."
+                echo "Deploying processed dataset..."
 
                 az rest \
                   --method put \
                   --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/datasets/ds-adls-processed?api-version=$(apiVersion)" \
                   --body @/tmp/ds-adls-processed-payload.json
 
-                echo ""
-                echo "Dataset deployment successful."
+                echo "Processed dataset deployment successful."
 
-                # ------------------------------------------------
-                # Final Verification
-                # ------------------------------------------------
+
+                # ====================================================
+                # PIPELINE
+                # ====================================================
+
+                echo ""
+                echo "Preparing pipeline payload..."
+
+                jq '{properties: .properties}' \
+                  adf/pipelines/pl-ingest-raw-to-processed.json \
+                  > /tmp/pl-ingest-raw-to-processed-payload.json
+
+                echo "Deploying ADF pipeline..."
+
+                az rest \
+                  --method put \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/pipelines/pl-ingest-raw-to-processed?api-version=$(apiVersion)" \
+                  --body @/tmp/pl-ingest-raw-to-processed-payload.json
+
+                echo "ADF pipeline deployment successful."
+
+
+                # ====================================================
+                # VERIFICATION
+                # ====================================================
 
                 echo ""
                 echo "========================================"
@@ -179,16 +211,42 @@ stages:
                   --query "{name:name,type:properties.type,typeProperties:properties.typeProperties}" \
                   --output json
 
+
                 echo ""
                 echo "========================================"
-                echo "Verifying dataset..."
+                echo "Verifying raw dataset..."
+                echo "========================================"
+
+                az rest \
+                  --method get \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/datasets/ds-adls-raw?api-version=$(apiVersion)" \
+                  --query "{name:name,type:properties.type,location:properties.typeProperties.location}" \
+                  --output json
+
+
+                echo ""
+                echo "========================================"
+                echo "Verifying processed dataset..."
                 echo "========================================"
 
                 az rest \
                   --method get \
                   --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/datasets/ds-adls-processed?api-version=$(apiVersion)" \
-                  --query "{name:name,type:properties.type,linkedService:properties.linkedServiceName,location:properties.typeProperties.location}" \
+                  --query "{name:name,type:properties.type,location:properties.typeProperties.location}" \
                   --output json
+
+
+                echo ""
+                echo "========================================"
+                echo "Verifying ADF pipeline..."
+                echo "========================================"
+
+                az rest \
+                  --method get \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/pipelines/pl-ingest-raw-to-processed?api-version=$(apiVersion)" \
+                  --query "{name:name,description:properties.description,activities:properties.activities[].name}" \
+                  --output json
+
 
                 echo ""
                 echo "========================================"
