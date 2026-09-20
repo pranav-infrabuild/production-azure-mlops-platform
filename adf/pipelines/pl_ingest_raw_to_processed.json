@@ -1,5 +1,5 @@
 {
-  "name": "pl-ingest-raw-to-processed",
+  "name": "pl_ingest_raw_to_processed",
   "properties": {
     "description": "Ingest Parquet files from the ADLS raw zone into the processed zone.",
     "activities": [

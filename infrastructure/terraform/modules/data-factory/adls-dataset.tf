@@ -10,7 +10,7 @@ resource "azurerm_data_factory_custom_dataset" "adls_processed" {
   type_properties_json = jsonencode({
     location = {
       type       = "AzureBlobFSLocation"
-      folderPath = "processed"
+      fileSystem  = "processed"
     }
   })
 }

@@ -487,3 +487,9 @@ resource "azurerm_role_assignment" "adf_adls_blob_contributor" {
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = module.data_factory.principal_id
 }
+
+resource "azurerm_role_assignment" "mlops_identity_adls_blob_contributor" {
+  scope                = module.adls.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.managed_identity.principal_id
+}
