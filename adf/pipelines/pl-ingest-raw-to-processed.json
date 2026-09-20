@@ -1,0 +1,54 @@
+{
+  "name": "pl-ingest-raw-to-processed",
+  "properties": {
+    "description": "Ingest Parquet files from the ADLS raw zone into the processed zone.",
+    "activities": [
+      {
+        "name": "Copy_Raw_To_Processed",
+        "type": "Copy",
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "ParquetSource",
+            "storeSettings": {
+              "type": "AzureBlobFSReadSettings",
+              "recursive": true,
+              "wildcardFilePath": "*.parquet"
+            },
+            "formatSettings": {
+              "type": "ParquetReadSettings"
+            }
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings",
+              "copyBehavior": "PreserveHierarchy"
+            },
+            "formatSettings": {
+              "type": "ParquetWriteSettings"
+            }
+          },
+          "inputs": [
+            {
+              "referenceName": "ds-adls-raw",
+              "type": "DatasetReference"
+            }
+          ],
+          "outputs": [
+            {
+              "referenceName": "ds-adls-processed",
+              "type": "DatasetReference"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
