@@ -1,0 +1,50 @@
+dataset:
+  name: transactions
+  format: parquet
+  schema_version: "1.0"
+
+schema:
+  required_columns:
+    - transaction_id
+    - amount
+    - country
+    - risk_score
+
+  columns:
+    transaction_id:
+      type: string
+      nullable: false
+      unique: true
+
+    amount:
+      type: double
+      nullable: false
+      min: 0
+
+    country:
+      type: string
+      nullable: false
+      pattern: "^[A-Z]{2}$"
+
+    risk_score:
+      type: double
+      nullable: false
+      min: 0
+      max: 1
+
+quality:
+  minimum_record_count: 1
+
+  duplicate_check:
+    enabled: true
+    column: transaction_id
+
+  null_check:
+    enabled: true
+
+  range_checks:
+    enabled: true
+
+drift:
+  enabled: true
+  mode: warning

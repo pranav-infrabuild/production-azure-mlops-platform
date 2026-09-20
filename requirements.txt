@@ -5,3 +5,5 @@ ruff
 scikit-learn
 mlflow
 feast
+pyarrow
+pyyaml

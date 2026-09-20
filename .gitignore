@@ -92,3 +92,7 @@ service-principal.json
 
 # Local test artifacts
 **/acr-test/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
