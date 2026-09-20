@@ -83,3 +83,12 @@ temp/
 *.pfx
 credentials.json
 service-principal.json
+# Terraform generated files
+**/.terraform/
+**/.terraform.lock.hcl
+**/tfplan
+**/*.tfplan
+**/provider-schema.json
+
+# Local test artifacts
+**/acr-test/

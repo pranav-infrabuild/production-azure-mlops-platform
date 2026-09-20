@@ -387,3 +387,103 @@ module "key_vault_private_endpoint" {
     module.key_vault_private_dns
   ]
 }
+
+variable "aks_cluster_name" {
+  description = "AKS cluster name."
+  type        = string
+}
+
+variable "aks_dns_prefix" {
+  description = "AKS DNS prefix."
+  type        = string
+}
+
+variable "aks_system_node_vm_size" {
+  description = "VM size for AKS system node pool."
+  type        = string
+  default     = "Standard_B2s"
+}
+
+variable "aks_user_node_vm_size" {
+  description = "VM size for AKS user node pool."
+  type        = string
+  default     = "Standard_B2s"
+}
+module "aks" {
+  source = "../../modules/aks"
+
+  cluster_name        = var.aks_cluster_name
+  location            = var.location
+  resource_group_name = module.resource_group.resource_group_name
+  dns_prefix          = var.aks_dns_prefix
+
+  aks_subnet_id = module.vnet.subnet_ids["aks-subnet"]
+
+  system_node_vm_size = var.aks_system_node_vm_size
+  user_node_vm_size   = var.aks_user_node_vm_size
+
+  service_cidr   = "10.10.0.0/16"
+  dns_service_ip = "10.10.0.10"
+  pod_cidr       = "10.244.0.0/16"
+  acr_id         = module.acr.registry_id
+  tags           = var.tags
+
+  depends_on = [
+    module.vnet
+  ]
+}
+
+module "managed_identity" {
+  source = "../../modules/managed-identity"
+
+  identity_name       = var.managed_identity_name
+  resource_group_name = module.resource_group.resource_group_name
+  location            = var.location
+  key_vault_id        = module.key_vault.key_vault_id
+  oidc_issuer_url     = module.aks.oidc_issuer_url
+
+  tags = var.tags
+
+  depends_on = [
+    module.resource_group,
+    module.key_vault,
+    module.aks
+  ]
+}
+
+module "vnet_peering" {
+  source = "../../modules/vnet-peering"
+
+  this_vnet_name   = module.vnet.vnet_name
+  this_vnet_id     = module.vnet.vnet_id
+  remote_vnet_name = "vnet-mysql-eastasia"
+  remote_vnet_id   = module.mysql_vnet.vnet_id
+
+  resource_group_name        = var.resource_group_name
+  remote_resource_group_name = var.resource_group_name
+
+  this_to_peer_name = "peer-mlops-to-mysql"
+  peer_to_this_name = "peer-mysql-to-mlops"
+}
+
+module "data_factory" {
+  source = "../../modules/data-factory"
+
+  data_factory_name   = "adf-mlops-dev925714"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  tags = var.tags
+}
+module "data_factory_adls_private_endpoint" {
+  source = "../../modules/data-factory-private-endpoint"
+
+  name               = "pe-adf-adls-dev"
+  data_factory_id    = module.data_factory.id
+  target_resource_id = module.adls.storage_account_id
+}
+resource "azurerm_role_assignment" "adf_adls_blob_contributor" {
+  scope                = module.adls.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.data_factory.principal_id
+}

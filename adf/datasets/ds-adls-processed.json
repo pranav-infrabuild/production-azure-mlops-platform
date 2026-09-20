@@ -1,0 +1,17 @@
+{
+  "name": "ds-adls-processed",
+  "properties": {
+    "linkedServiceName": {
+      "parameters": {},
+      "referenceName": "ls-adls-gen2",
+      "type": "LinkedServiceReference"
+    },
+    "type": "Parquet",
+    "typeProperties": {
+      "location": {
+        "folderPath": "processed",
+        "type": "AzureBlobFSLocation"
+      }
+    }
+  }
+}

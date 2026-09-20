@@ -40,7 +40,7 @@ variable "subnet_nsg_associations" {
   description = "Map of subnet names to their associated Network Security Groups."
 
   type = map(object({
-    subnet_id                 = string
+    subnet_id                   = string
     network_security_group_name = string
   }))
 

@@ -119,3 +119,7 @@ variable "key_vault_sku" {
     error_message = "Key Vault SKU must be standard or premium."
   }
 }
+variable "managed_identity_name" {
+  type    = string
+  default = "id-mlops-dev"
+}

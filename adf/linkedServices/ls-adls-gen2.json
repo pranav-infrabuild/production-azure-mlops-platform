@@ -1,0 +1,10 @@
+{
+  "name": "ls-adls-gen2",
+  "properties": {
+    "description": "",
+    "type": "AzureBlobFS",
+    "typeProperties": {
+      "url": "https://stmlopsdev925714.dfs.core.windows.net"
+    }
+  }
+}
