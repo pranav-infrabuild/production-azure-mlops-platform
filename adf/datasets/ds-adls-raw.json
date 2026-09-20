@@ -1,5 +1,5 @@
 {
-  "name": "ds-adls-raw",
+  "name": "ds_adls_raw",
   "properties": {
     "linkedServiceName": {
       "parameters": {},

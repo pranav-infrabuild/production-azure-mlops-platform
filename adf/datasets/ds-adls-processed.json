@@ -1,5 +1,5 @@
 {
-  "name": "ds-adls-processed",
+  "name": "ds_adls_processed",
   "properties": {
     "linkedServiceName": {
       "parameters": {},
