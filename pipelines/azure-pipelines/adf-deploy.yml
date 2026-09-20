@@ -8,7 +8,13 @@ pr: none
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  azureServiceConnection: "sc-azure-mlops-dev"
+  resourceGroup: "rg-mlops-dev"
+  dataFactoryName: "adf-mlops-dev925714"
+
 stages:
+
   - stage: Validate
     displayName: "Validate ADF Metadata"
 
@@ -20,6 +26,75 @@ stages:
           - checkout: self
 
           - script: |
-              echo "Validating ADF metadata..."
+              set -e
+
+              echo "Validating ADF metadata files..."
+
+              test -f adf/linkedServices/ls-adls-gen2.json
+              test -f adf/datasets/ds-adls-processed.json
+
+              echo "ADF metadata files found:"
               find adf -type f -print
-            displayName: "List ADF Artifacts"
+
+              echo "Validating JSON syntax..."
+
+              python -m json.tool \
+                adf/linkedServices/ls-adls-gen2.json > /dev/null
+
+              python -m json.tool \
+                adf/datasets/ds-adls-processed.json > /dev/null
+
+              echo "ADF metadata validation successful."
+
+            displayName: "Validate ADF JSON"
+
+
+  - stage: Deploy_Dev
+    displayName: "Deploy ADF Metadata - Dev"
+
+    dependsOn: Validate
+
+    condition: succeeded()
+
+    jobs:
+      - job: DeployADF
+        displayName: "Deploy ADF Metadata"
+
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: "Deploy ADF Linked Service and Dataset"
+
+            inputs:
+              azureSubscription: "$(azureServiceConnection)"
+              scriptType: bash
+              scriptLocation: inlineScript
+
+              inlineScript: |
+                set -e
+
+                echo "Preparing ADF linked service..."
+
+                jq \
+                  '.properties.typeProperties.authenticationType = "ManagedServiceIdentity"' \
+                  adf/linkedServices/ls-adls-gen2.json \
+                  > /tmp/ls-adls-gen2.json
+
+                echo "Deploying ADF linked service..."
+
+                az datafactory linked-service create \
+                  --resource-group "$(resourceGroup)" \
+                  --factory-name "$(dataFactoryName)" \
+                  --linked-service-name "ls-adls-gen2" \
+                  --properties @/tmp/ls-adls-gen2.json
+
+                echo "Deploying ADF dataset..."
+
+                az datafactory dataset create \
+                  --resource-group "$(resourceGroup)" \
+                  --factory-name "$(dataFactoryName)" \
+                  --dataset-name "ds-adls-processed" \
+                  --properties @adf/datasets/ds-adls-processed.json
+
+                echo "ADF metadata deployment completed successfully."
