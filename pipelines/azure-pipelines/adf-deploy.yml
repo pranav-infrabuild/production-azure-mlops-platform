@@ -12,30 +12,42 @@ variables:
   azureServiceConnection: "sc-azure-mlops-dev"
   resourceGroup: "rg-mlops-dev"
   dataFactoryName: "adf-mlops-dev925714"
+  subscriptionId: "5ac86695-3a1f-469d-ab77-ae270ca18530"
+  apiVersion: "2018-06-01"
 
 stages:
+
+  # ============================================================
+  # VALIDATION
+  # ============================================================
 
   - stage: Validate
     displayName: "Validate ADF Metadata"
 
     jobs:
+
       - job: ValidateADF
         displayName: "Validate ADF Artifacts"
 
         steps:
+
           - checkout: self
 
           - script: |
               set -e
 
-              echo "Validating ADF metadata files..."
+              echo "========================================"
+              echo "Validating ADF metadata files"
+              echo "========================================"
 
               test -f adf/linkedServices/ls-adls-gen2.json
               test -f adf/datasets/ds-adls-processed.json
 
+              echo ""
               echo "ADF metadata files found:"
               find adf -type f -print
 
+              echo ""
               echo "Validating JSON syntax..."
 
               python -m json.tool \
@@ -44,10 +56,15 @@ stages:
               python -m json.tool \
                 adf/datasets/ds-adls-processed.json > /dev/null
 
+              echo ""
               echo "ADF metadata validation successful."
 
             displayName: "Validate ADF JSON"
 
+
+  # ============================================================
+  # DEV DEPLOYMENT
+  # ============================================================
 
   - stage: Deploy_Dev
     displayName: "Deploy ADF Metadata - Dev"
@@ -57,14 +74,16 @@ stages:
     condition: succeeded()
 
     jobs:
+
       - job: DeployADF
         displayName: "Deploy ADF Metadata"
 
         steps:
+
           - checkout: self
 
           - task: AzureCLI@2
-            displayName: "Deploy ADF Linked Service and Dataset"
+            displayName: "Deploy ADF Metadata via REST API"
 
             inputs:
               azureSubscription: "$(azureServiceConnection)"
@@ -72,29 +91,106 @@ stages:
               scriptLocation: inlineScript
 
               inlineScript: |
+
                 set -e
 
-                echo "Preparing ADF linked service..."
+                echo "========================================"
+                echo "ADF Metadata Deployment"
+                echo "========================================"
 
-                jq \
-                  '.properties.typeProperties.authenticationType = "ManagedServiceIdentity"' \
+                echo ""
+                echo "Resource Group : $(resourceGroup)"
+                echo "Data Factory   : $(dataFactoryName)"
+                echo "Subscription   : $(subscriptionId)"
+                echo "API Version    : $(apiVersion)"
+
+                # ------------------------------------------------
+                # Prepare Linked Service REST payload
+                # ------------------------------------------------
+
+                echo ""
+                echo "Preparing linked service payload..."
+
+                jq '{properties: .properties}' \
                   adf/linkedServices/ls-adls-gen2.json \
-                  > /tmp/ls-adls-gen2.json
+                  > /tmp/ls-adls-gen2-payload.json
 
-                echo "Deploying ADF linked service..."
+                echo ""
+                echo "Linked service payload:"
+                cat /tmp/ls-adls-gen2-payload.json
 
-                az datafactory linked-service create \
-                  --resource-group "$(resourceGroup)" \
-                  --factory-name "$(dataFactoryName)" \
-                  --linked-service-name "ls-adls-gen2" \
-                  --properties @/tmp/ls-adls-gen2.json
+                # ------------------------------------------------
+                # Deploy Linked Service
+                # ------------------------------------------------
 
-                echo "Deploying ADF dataset..."
+                echo ""
+                echo "Deploying linked service..."
 
-                az datafactory dataset create \
-                  --resource-group "$(resourceGroup)" \
-                  --factory-name "$(dataFactoryName)" \
-                  --dataset-name "ds-adls-processed" \
-                  --properties @adf/datasets/ds-adls-processed.json
+                az rest \
+                  --method put \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/linkedservices/ls-adls-gen2?api-version=$(apiVersion)" \
+                  --body @/tmp/ls-adls-gen2-payload.json
 
-                echo "ADF metadata deployment completed successfully."
+                echo ""
+                echo "Linked service deployment successful."
+
+                # ------------------------------------------------
+                # Prepare Dataset REST payload
+                # ------------------------------------------------
+
+                echo ""
+                echo "Preparing dataset payload..."
+
+                jq '{properties: .properties}' \
+                  adf/datasets/ds-adls-processed.json \
+                  > /tmp/ds-adls-processed-payload.json
+
+                echo ""
+                echo "Dataset payload:"
+                cat /tmp/ds-adls-processed-payload.json
+
+                # ------------------------------------------------
+                # Deploy Dataset
+                # ------------------------------------------------
+
+                echo ""
+                echo "Deploying dataset..."
+
+                az rest \
+                  --method put \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/datasets/ds-adls-processed?api-version=$(apiVersion)" \
+                  --body @/tmp/ds-adls-processed-payload.json
+
+                echo ""
+                echo "Dataset deployment successful."
+
+                # ------------------------------------------------
+                # Final Verification
+                # ------------------------------------------------
+
+                echo ""
+                echo "========================================"
+                echo "Verifying linked service..."
+                echo "========================================"
+
+                az rest \
+                  --method get \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/linkedservices/ls-adls-gen2?api-version=$(apiVersion)" \
+                  --query "{name:name,type:properties.type,typeProperties:properties.typeProperties}" \
+                  --output json
+
+                echo ""
+                echo "========================================"
+                echo "Verifying dataset..."
+                echo "========================================"
+
+                az rest \
+                  --method get \
+                  --url "https://management.azure.com/subscriptions/$(subscriptionId)/resourceGroups/$(resourceGroup)/providers/Microsoft.DataFactory/factories/$(dataFactoryName)/datasets/ds-adls-processed?api-version=$(apiVersion)" \
+                  --query "{name:name,type:properties.type,linkedService:properties.linkedServiceName,location:properties.typeProperties.location}" \
+                  --output json
+
+                echo ""
+                echo "========================================"
+                echo "ADF metadata deployment completed."
+                echo "========================================"
