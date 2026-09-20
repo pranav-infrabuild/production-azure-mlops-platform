@@ -6,6 +6,7 @@
       {
         "name": "Copy_Raw_To_Processed",
         "type": "Copy",
+        "dependsOn": [],
         "policy": {
           "timeout": "0.12:00:00",
           "retry": 2,
@@ -34,20 +35,20 @@
             "formatSettings": {
               "type": "ParquetWriteSettings"
             }
-          },
-          "inputs": [
-            {
-              "referenceName": "ds-adls-raw",
-              "type": "DatasetReference"
-            }
-          ],
-          "outputs": [
-            {
-              "referenceName": "ds-adls-processed",
-              "type": "DatasetReference"
-            }
-          ]
-        }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds-adls-raw",
+            "type": "DatasetReference"
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds-adls-processed",
+            "type": "DatasetReference"
+          }
+        ]
       }
     ]
   }
