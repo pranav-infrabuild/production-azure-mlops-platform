@@ -1,0 +1,38 @@
+dataset:
+  name: transactions
+  input_format: parquet
+  output_format: parquet
+  schema_version: "1.0"
+
+features:
+
+  amount_log:
+    source_column: amount
+    transformation: log1p
+    description: "Log-transformed transaction amount"
+
+  risk_score_squared:
+    source_column: risk_score
+    transformation: square
+    description: "Squared transaction risk score"
+
+  amount_risk_ratio:
+    source_columns:
+      - amount
+      - risk_score
+    transformation: divide
+    description: "Transaction amount divided by risk score"
+
+  country_code:
+    source_column: country
+    transformation: categorical_encoding
+    method: ordinal
+    description: "Numerical representation of transaction country"
+
+output:
+  include_original_columns: true
+  feature_columns:
+    - amount_log
+    - risk_score_squared
+    - amount_risk_ratio
+    - country_code

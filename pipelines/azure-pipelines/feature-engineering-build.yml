@@ -1,0 +1,66 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageRepository: feature-engineering
+  imageTag: $(Build.BuildId)
+
+steps:
+
+  - checkout: self
+
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.12
+    inputs:
+      versionSpec: "3.12"
+
+  - script: |
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+    displayName: Install Python dependencies
+
+  - script: |
+      python -m pytest ml/feature_engineering/tests -v
+    displayName: Run feature engineering tests
+
+  - task: Docker@2
+    displayName: Build feature engineering Docker image
+    inputs:
+      command: build
+      Dockerfile: ml/feature_engineering/Dockerfile
+      buildContext: .
+      repository: $(imageRepository)
+      tags: |
+        $(imageTag)
+        latest
+
+  - script: |
+      echo "Running Docker feature engineering smoke test..."
+
+      docker run --rm \
+        $(imageRepository):$(imageTag) \
+        python -m ml.feature_engineering.src.pipeline \
+        --help
+    displayName: Run Docker smoke test
+
+  - script: |
+      echo "Saving Docker image as pipeline artifact..."
+
+      docker save $(imageRepository):$(imageTag) | gzip > $(Build.ArtifactStagingDirectory)/feature-engineering-$(imageTag).tar.gz
+
+      echo "Docker image saved successfully."
+
+      ls -lh $(Build.ArtifactStagingDirectory)/feature-engineering-$(imageTag).tar.gz
+    displayName: Save Docker image
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish feature engineering Docker image artifact
+    inputs:
+      targetPath: "$(Build.ArtifactStagingDirectory)/feature-engineering-$(imageTag).tar.gz"
+      artifact: feature-engineering-docker-image
+      publishLocation: pipeline
