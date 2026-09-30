@@ -93,6 +93,16 @@ service-principal.json
 # Local test artifacts
 **/acr-test/
 
+
+
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# MLflow local tracking
+mlflow.db
+mlruns/
+
+# Generated ML model artifacts
+models/
+models-docker/

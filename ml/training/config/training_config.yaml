@@ -1,0 +1,27 @@
+dataset:
+  name: transactions
+  format: parquet
+  target_column: risk_score
+
+training:
+  algorithm: xgboost
+  task: regression
+  random_state: 42
+  test_size: 0.2
+
+  parameters:
+    n_estimators: 100
+    max_depth: 4
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+features:
+  numerical:
+    - amount
+    - amount_log
+    - country_code
+
+mlflow:
+  experiment_name: transaction-risk-xgboost
+  run_name: xgboost-baseline
