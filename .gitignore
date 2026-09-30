@@ -106,3 +106,7 @@ mlruns/
 # Generated ML model artifacts
 models/
 models-docker/
+
+# ML evaluation generated artifacts
+evaluation_report.json
+evaluation-docker/

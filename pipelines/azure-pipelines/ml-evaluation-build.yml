@@ -1,0 +1,66 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageRepository: ml-evaluation
+  imageTag: $(Build.BuildId)
+
+steps:
+
+  - checkout: self
+
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.12
+    inputs:
+      versionSpec: "3.12"
+
+  - script: |
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+    displayName: Install evaluation dependencies
+
+  - script: |
+      python -m pytest ml/evaluation/tests -v
+    displayName: Run model evaluation tests
+
+  - task: Docker@2
+    displayName: Build model evaluation Docker image
+    inputs:
+      command: build
+      Dockerfile: ml/evaluation/Dockerfile
+      buildContext: .
+      repository: $(imageRepository)
+      tags: |
+        $(imageTag)
+        latest
+
+  - script: |
+      echo "Running model evaluation Docker smoke test..."
+
+      docker run --rm \
+        $(imageRepository):$(imageTag) \
+        python -m ml.evaluation.src.evaluate \
+        --help
+    displayName: Run Docker smoke test
+
+  - script: |
+      echo "Saving Docker image as pipeline artifact..."
+
+      docker save $(imageRepository):$(imageTag) | gzip > $(Build.ArtifactStagingDirectory)/ml-evaluation-$(imageTag).tar.gz
+
+      echo "Docker image saved successfully."
+
+      ls -lh $(Build.ArtifactStagingDirectory)/ml-evaluation-$(imageTag).tar.gz
+    displayName: Save Docker image
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish model evaluation Docker image artifact
+    inputs:
+      targetPath: "$(Build.ArtifactStagingDirectory)/ml-evaluation-$(imageTag).tar.gz"
+      artifact: ml-evaluation-docker-image
+      publishLocation: pipeline

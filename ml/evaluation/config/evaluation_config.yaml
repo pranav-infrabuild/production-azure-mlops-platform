@@ -1,0 +1,12 @@
+evaluation:
+  metric: mae
+  threshold: 0.70
+  direction: less_than_or_equal
+
+model:
+  algorithm: xgboost
+  task: regression
+
+output:
+  evaluation_report: evaluation_report.json
+  promote_if_passed: true
