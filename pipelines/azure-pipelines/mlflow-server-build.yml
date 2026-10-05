@@ -1,0 +1,31 @@
+trigger: none
+
+pool:
+  name: Default
+  demands:
+    - Agent.Name -equals aws-ec2-agent-01
+
+steps:
+  - checkout: self
+
+  - script: |
+      echo "===== Agent ====="
+      whoami
+      hostname
+
+      echo "===== Repository ====="
+      pwd
+      ls -la
+
+      echo "===== MLflow Server ====="
+      ls -la services/mlflow-server
+
+      echo "===== Docker Build ====="
+      docker build \
+        -f services/mlflow-server/Dockerfile \
+        -t mlflow-server:1.0.0 \
+        .
+
+      echo "===== Docker Image ====="
+      docker images mlflow-server
+    displayName: "Build MLflow Server Docker Image"
