@@ -13,19 +13,13 @@ steps:
       whoami
       hostname
 
-      echo "===== Repository ====="
-      pwd
-      ls -la
+      echo "===== Azure CLI ====="
+      az --version
 
-      echo "===== MLflow Server ====="
-      ls -la services/mlflow-server
-
-      echo "===== Docker Build ====="
-      docker build \
-        -f services/mlflow-server/Dockerfile \
-        -t mlflow-server:1.0.0 \
+      echo "===== ACR Build ====="
+      az acr build \
+        --registry acrmlopsdev925714 \
+        --image mlflow-server:1.0.0 \
+        --file services/mlflow-server/Dockerfile \
         .
-
-      echo "===== Docker Image ====="
-      docker images mlflow-server
-    displayName: "Build MLflow Server Docker Image"
+    displayName: "Build and Push MLflow Image to ACR"
