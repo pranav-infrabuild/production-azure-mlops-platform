@@ -1,9 +1,7 @@
 trigger: none
 
 pool:
-  name: Default
-  demands:
-    - Agent.Name -equals aws-ec2-agent-01
+  name: AWS-EC2
 
 steps:
   - checkout: self
